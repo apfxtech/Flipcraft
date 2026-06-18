@@ -144,14 +144,22 @@ struct AppState {
 };
 
 static void packSsd(const Framebuffer& fb, uint8_t* ssd) {
-    memset(ssd, 0, SSD_SZ);
     for(int page = 0; page < (SCREEN_HEIGHT / 8); ++page) {
+        const uint8_t* r0 = fb.px[page * 8 + 0];
+        const uint8_t* r1 = fb.px[page * 8 + 1];
+        const uint8_t* r2 = fb.px[page * 8 + 2];
+        const uint8_t* r3 = fb.px[page * 8 + 3];
+        const uint8_t* r4 = fb.px[page * 8 + 4];
+        const uint8_t* r5 = fb.px[page * 8 + 5];
+        const uint8_t* r6 = fb.px[page * 8 + 6];
+        const uint8_t* r7 = fb.px[page * 8 + 7];
+        uint8_t* out = ssd + page * DISP_W;
         for(int col = 0; col < SCREEN_WIDTH; ++col) {
-            uint8_t byte = 0;
-            for(int bit = 0; bit < 8; ++bit) {
-                if(fb.px[page * 8 + bit][col]) byte |= static_cast<uint8_t>(1u << bit);
-            }
-            ssd[page * DISP_W + col] = byte;
+            out[col] = static_cast<uint8_t>(
+                (r0[col] != 0)        | ((r1[col] != 0) << 1) |
+                ((r2[col] != 0) << 2) | ((r3[col] != 0) << 3) |
+                ((r4[col] != 0) << 4) | ((r5[col] != 0) << 5) |
+                ((r6[col] != 0) << 6) | ((r7[col] != 0) << 7));
         }
     }
 }

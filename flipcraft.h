@@ -40,13 +40,9 @@ constexpr int WORLD_SY             = 16;
 constexpr int WORLD_SZ             = WORLD_CHUNKS_Z * CHUNK_SIZE;
 constexpr int WINDOW_CHUNKS        = 3;
 constexpr int CHUNK_BLOCKS         = CHUNK_SIZE * WORLD_SY * CHUNK_SIZE;
-
-// Persisted storage region (after the world chunk array). Each chest/furnace
-// owns one fixed-size slot addressed by an explicit index: contents are loaded
-// on demand and written on close. STORAGE_CAPACITY caps the number of storages.
 constexpr int STORAGE_CAPACITY       = 256;
-constexpr int STORAGE_SLOT_SIZE      = 16;  // bytes per storage slot on disk
-constexpr int INVENTORY_REGION_SIZE  = 32;  // [0]=valid magic, [1..]=payload
+constexpr int STORAGE_SLOT_SIZE      = 16; 
+constexpr int INVENTORY_REGION_SIZE  = 32;
 constexpr int PLAYERWIDTH          = 9;
 constexpr int PLAYERHEIGHT         = 28;
 constexpr int PLAYERHALFWIDTH      = 5;
@@ -178,7 +174,7 @@ inline float FixedPoint(float value, int bits, int precision, bool sgned = false
     int32_t v = ifloor(value * (float)shiftamount) & bitmask;
     if (sgned && v > (int32_t(1) << (bits - 1)))
         v -= (int32_t(1) << bits);
-    return (float)v / (float)shiftamount;
+    return (float)v * (1.0f / (float)shiftamount);
 }
 
 inline uint8_t u8(int v) { return (uint8_t)(v & 0xFF); }
