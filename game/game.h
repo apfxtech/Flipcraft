@@ -54,6 +54,7 @@ public:
     uint32_t rngState = 0x1234;
 
     int playerX = 0, playerY = 0, playerZ = 0;
+    int velYsub = 0, posYsub = 0;
 
     ScreenId screenId = SCR_PLAY;
     std::vector<ItemEnt> items;

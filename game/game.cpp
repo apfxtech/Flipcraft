@@ -17,7 +17,7 @@ bool Game::setup(const GameConfig& config) {
 
     playerX=world.hdrPX; playerY=world.hdrPY; playerZ=world.hdrPZ;
     m(M_ROT)=world.hdrRot; rngState=world.hdrRng;
-    m(M_ONGROUND)=0xFF; m(M_VELY)=0xFF;
+    m(M_ONGROUND)=0xFF; velYsub=0; posYsub=0;
     m(M_CROUCHING)=0xFF;
     forceRedraw=true; lastSig=0;
     m(M_HEALTH)=MAXHEALTH; m(M_LOGSINWORLD)=4;
@@ -290,19 +290,19 @@ void Game::moveAndCollide(int dx,int dy,int dz){
     int ny=y+dy;
     if(playerCollides(x,ny,z)){
         if(dy<0){
-            int speed=-s8(m(M_VELY));
+            int speed=-velYsub*JUMP_AIRTIME/VERT_SUBPIXEL;
             int over=speed-MINFALLDAMAGESPEED;
             if(over>0){int dmg=smul446(over,FALLDAMAGESCALING); int hp=s8(m(M_HEALTH))-dmg;
                 if(hp<=0){gameOverPending=true;} else m(M_HEALTH)=u8(hp);}
             m(M_ONGROUND)=0xFF;
         }
-        m(M_VELY)=0;
+        velYsub=0; posYsub=0;
 
         int step=(dy<0)?1:-1;
         while(playerCollides(x,ny,z)&&ny>=0&&ny<=WORLD_SY*BLOCKSIZE) ny+=step;
         y=ny;
     } else y=ny;
-    if(y<0){y=0;m(M_ONGROUND)=0xFF;m(M_VELY)=0;}
+    if(y<0){y=0;m(M_ONGROUND)=0xFF;velYsub=0;posYsub=0;}
 
     playerX=x;playerY=y;playerZ=z;
 }
@@ -320,9 +320,17 @@ void Game::miscInputs(const Input& in){
 
     int dx=smul446(fwd,sinY);
     int dz=smul446(fwd,cosY);
-    int onG=m(M_ONGROUND); m(M_ONGROUND)=0;
-    if(onG&&in.jump)m(M_VELY)=JUMPSTRENGTH; else m(M_VELY)=u8(s8(m(M_VELY))-GRAVITY);
-    int dy=s8(m(M_VELY));
+    bool grounded = playerCollides(playerX, playerY-1, playerZ);
+    m(M_ONGROUND)=0;
+    if(grounded && in.jump){
+        velYsub = JUMPSTRENGTH*VERT_SUBPIXEL/JUMP_AIRTIME; posYsub=0;
+    } else if(grounded){
+        velYsub=0; posYsub=0; m(M_ONGROUND)=0xFF;
+    } else {
+        velYsub -= GRAVITY*VERT_SUBPIXEL/(JUMP_AIRTIME*JUMP_AIRTIME);
+    }
+    posYsub += velYsub;
+    int dy = posYsub/VERT_SUBPIXEL; posYsub -= dy*VERT_SUBPIXEL;
     moveAndCollide(dx,dy,dz);
 
     bool moving = in.forward!=0 && m(M_ONGROUND);
@@ -452,7 +460,7 @@ void Game::respawn(){
         by++;
     }
     playerX=x;playerY=by*BLOCKSIZE;playerZ=z;
-    m(M_VELY)=0;m(M_ONGROUND)=0;m(M_HEALTH)=MAXHEALTH;
+    velYsub=0;posYsub=0;m(M_ONGROUND)=0;m(M_HEALTH)=MAXHEALTH;
     screenId=SCR_PLAY;selSlot=-1;loadedTile=-1;gameOverPending=false;
     world.updateWindow((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE);
 }
