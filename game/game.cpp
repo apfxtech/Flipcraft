@@ -277,6 +277,18 @@ bool Game::playerCollides(int x,int y,int z){
 }
 void Game::moveAndCollide(int dx,int dy,int dz){
     int x=playerX,y=playerY,z=playerZ;
+    if(playerCollides(x,y,z)){
+        int bx0=x>>4, bx1=(x+PLAYERWIDTH)>>4, bz0=z>>4, bz1=(z+PLAYERWIDTH)>>4;
+        int top=-1;
+        for(int by=WORLD_SY-1;by>=0&&top<0;by--)
+            for(int cx=bx0;cx<=bx1&&top<0;cx++)
+                for(int cz=bz0;cz<=bz1;cz++){
+                    uint8_t id=world.getBlock(cx,by,cz);
+                    if(id!=BLOCK_AIR&&id!=BLOCK_SAPLING){top=by;break;}
+                }
+        y=(top+1)*BLOCKSIZE;
+        velYsub=0; posYsub=0; m(M_ONGROUND)=0xFF;
+    }
 
     const int maxX = world.worldSX()*BLOCKSIZE - PLAYERWIDTH;
     const int maxZ = world.worldSZ()*BLOCKSIZE - PLAYERWIDTH;
@@ -444,7 +456,7 @@ void Game::doRandomTicks(){
                     if(world.getBlock(lx,ly,lz)==BLOCK_AIR)world.setBlock(lx,ly,lz,BLOCK_LEAVES);
             for(int ty=upperTop-1;ty>=y;ty--){
                 uint8_t old=world.getBlock(x,ty,z);
-                if(old==BLOCK_AIR||old==BLOCK_LEAVES)world.setBlock(x,ty,z,BLOCK_LOG);
+                if(old==BLOCK_AIR||old==BLOCK_LEAVES||old==BLOCK_SAPLING)world.setBlock(x,ty,z,BLOCK_LOG);
             }
         }
     }
