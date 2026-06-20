@@ -23,9 +23,18 @@ struct FileSystem {
     void (*sync)(void* ctx, void* file) = nullptr;
 };
 
+struct AudioSystem {
+    void* ctx = nullptr;
+    void (*blockPlace)(void* ctx, uint8_t blockId) = nullptr;
+    void (*blockBreak)(void* ctx, uint8_t blockId) = nullptr;
+    void (*land)(void* ctx) = nullptr;
+    void (*footstep)(void* ctx) = nullptr;
+};
+
 struct GameConfig {
     const FileSystem* files = nullptr;
     const char* worldDataPath = nullptr;
+    const AudioSystem* audio = nullptr;
 };
 
 constexpr int BLOCKSIZE            = 16;

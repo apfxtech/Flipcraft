@@ -12,6 +12,7 @@ int Game::smul446(int a,int b){ int r=(s8(a)*s8(b))>>6; return (int8_t)std::clam
 
 bool Game::setup(const GameConfig& config) {
 
+    audio = config.audio;
     if(!world.openWorld(*config.files, config.worldDataPath)) return false;
     for (int i=0;i<256;i++) ram[i]=0;
 
@@ -222,6 +223,7 @@ void Game::handleBreakAndPlace(const Input& in){
             tiles[be].loaded=false;   // destroyed: never flush it back to disk
         }
         world.setBlock(bx,by,bz,BLOCK_AIR);
+        if(audio && audio->blockBreak) audio->blockBreak(audio->ctx,(uint8_t)id);
         if(net>=STRENGTHFORITEM&&id!=BLOCK_GLASS){
             if(id==BLOCK_GRASS)createEntity(bx,by,bz,ENTITY_DIRT);
             else if(id==BLOCK_STONE)createEntity(bx,by,bz,ENTITY_COBBLE);
@@ -259,6 +261,7 @@ void Game::handleBreakAndPlace(const Input& in){
         if(blockId==BLOCK_SAND){uint8_t below=world.getBlock(px,py-1,pz);
             if(below==BLOCK_AIR){createEntity(px,py,pz,ENTITY_FALLINGSAND);} else world.setBlock(px,py,pz,BLOCK_SAND);}
         else world.setBlock(px,py,pz,(uint8_t)blockId);
+        if(audio && audio->blockPlace) audio->blockPlace(audio->ctx, (uint8_t)blockId);
         if(blockId==BLOCK_CHEST||blockId==BLOCK_FURNACE){BlockEnt b;b.active=true;b.isChest=(blockId==BLOCK_CHEST);
             b.bx=px;b.by=py;b.bz=pz;b.dir=(m(M_ROT)&0x0F);
             b.storage=allocStorage(); b.loaded=false;
@@ -303,6 +306,7 @@ void Game::moveAndCollide(int dx,int dy,int dz){
             int over=speed-MINFALLDAMAGESPEED;
             if(over>0){int dmg=smul446(over,FALLDAMAGESCALING); int hp=s8(m(M_HEALTH))-dmg;
                 if(hp<=0){gameOverPending=true;} else m(M_HEALTH)=u8(hp);}
+            if(audio && audio->land && speed>6) audio->land(audio->ctx);
             m(M_ONGROUND)=0xFF;
         }
         velYsub=0; posYsub=0;
@@ -343,7 +347,16 @@ void Game::miscInputs(const Input& in){
     moveAndCollide(dx,dy,dz);
 
     bool moving = in.forward!=0 && m(M_ONGROUND);
-    if(moving) bobTimer += BOB_SPEED;
+    if(moving){
+        bobTimer += BOB_SPEED;
+        constexpr float STEP_INTERVAL = 1.5708f;
+        float prev = stepPhase;
+        stepPhase += BOB_SPEED;
+        if(ifloor(stepPhase/STEP_INTERVAL) != ifloor(prev/STEP_INTERVAL))
+            if(audio && audio->footstep) audio->footstep(audio->ctx);
+    } else {
+        stepPhase = 0.0f;
+    }
     float target = moving ? 1.0f : 0.0f;
     if(bobAmt<target){ bobAmt+=BOB_EASE; if(bobAmt>target)bobAmt=target; }
     else if(bobAmt>target){ bobAmt-=BOB_EASE; if(bobAmt<target)bobAmt=target; }

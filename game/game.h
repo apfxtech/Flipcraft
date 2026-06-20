@@ -68,6 +68,9 @@ public:
 
     uint8_t storageUsed[STORAGE_CAPACITY / 8] = {0}; // free-slot bitmap for the table
 
+    float stepPhase = 0.0f;
+    const AudioSystem* audio = nullptr;
+
     bool setup(const GameConfig& config);
     void shutdown();
     void simulate(const Input& in);

@@ -2,6 +2,7 @@
 
 #include "../../game/game.h"
 #include "../../menu/menu.h"
+#include "../../audio/audio.h"
 
 #include <furi.h>
 #include <gui/canvas.h>
@@ -354,6 +355,27 @@ static const FileSystem g_files = {
     fsSync,
 };
 
+static void audioBlockPlace(void*, uint8_t blockId) {
+    audio::blockPlace(blockId);
+}
+static void audioBlockBreak(void*, uint8_t blockId) {
+    audio::blockBreak(blockId);
+}
+static void audioLand(void*) {
+    audio::land();
+}
+static void audioFootstep(void*) {
+    audio::footstep();
+}
+
+static const AudioSystem g_audio = {
+    nullptr,
+    audioBlockPlace,
+    audioBlockBreak,
+    audioLand,
+    audioFootstep,
+};
+
 // Run a single game session for the save at `path`. Returns to the caller (the
 // menu loop) when the player quits. Opening a save that fails to load is not
 // fatal: we simply return so the menu can be shown again.
@@ -371,13 +393,15 @@ static void runGame(Game& game, Gui* gui, const char* path) {
         return;
     }
 
-    GameConfig config = {&g_files, path};
+    GameConfig config = {&g_files, path, &g_audio};
     if(!game.setup(config)) {
         furi_mutex_free(st->mutex);
         furi_mutex_free(st->inputMutex);
         delete st;
         return;
     }
+
+    // audio::startAmbient();
 
     st->view_port = view_port_alloc();
     view_port_draw_callback_set(st->view_port, drawCb, st);
@@ -424,6 +448,8 @@ static void runGame(Game& game, Gui* gui, const char* path) {
         delayMs(ahead);
     }
 
+    audio::stopAmbient();
+
     furi_mutex_acquire(st->mutex, FuriWaitForever);
     game.shutdown();
     furi_mutex_release(st->mutex);
@@ -440,6 +466,8 @@ int32_t run(Game& game) {
     Storage* storage = reinterpret_cast<Storage*>(furi_record_open(RECORD_STORAGE));
     Gui* gui = reinterpret_cast<Gui*>(furi_record_open(RECORD_GUI));
 
+    audio::init();
+
     // Show the save selector, play the chosen world, then return to the menu
     // until the player leaves it.
     while(true) {
@@ -447,6 +475,8 @@ int32_t run(Game& game) {
         if(!choice.launch) break;
         runGame(game, gui, choice.path);
     }
+
+    audio::deinit();
 
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_STORAGE);
