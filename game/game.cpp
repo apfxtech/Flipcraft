@@ -282,7 +282,6 @@ void Game::moveAndCollide(int dx,int dy,int dz){
     const int maxZ = world.worldSZ()*BLOCKSIZE - PLAYERWIDTH;
 
     int nx=x+dx; nx=std::clamp(nx,0,maxX); if(!playerCollides(nx,y,z))x=nx;
-
     int nz=z+dz; nz=std::clamp(nz,0,maxZ); if(!playerCollides(x,y,nz))z=nz;
 
     int ny=y+dy;
@@ -411,10 +410,12 @@ void Game::doRandomTicks(){
     auto above=[&](int x,int y,int z){uint8_t a=world.getBlock(x,y+1,z);
         return a==BLOCK_AIR||a==BLOCK_LEAVES||a==BLOCK_GLASS||a==BLOCK_SAPLING;};
     auto nearLog=[&](int x,int y,int z){
-        for(int dx=-LEAF_LOG_RADIUS;dx<=LEAF_LOG_RADIUS;dx++)
-            for(int dz=-LEAF_LOG_RADIUS;dz<=LEAF_LOG_RADIUS;dz++)
+        for(int r=0;r<=LEAF_LOG_RADIUS;r++)
+            for(int dx=-r;dx<=r;dx++)for(int dz=-r;dz<=r;dz++){
+                if(dx>-r&&dx<r&&dz>-r&&dz<r)continue; // interior covered by smaller r
                 for(int dy=-1;dy<=1;dy++)
                     if(world.getBlock(x+dx,y+dy,z+dz)==BLOCK_LOG)return true;
+            }
         return false;};
 
     int pbx=(playerX+PLAYERHALFWIDTH)/BLOCKSIZE, pbz=(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE;
